@@ -65,19 +65,19 @@ for siswa in nama_siswa:
     key_status = f"{selected_bulan}_{siswa}_status"
     key_nominal = f"{selected_bulan}_{siswa}_nominal"
 
-    # Ambil data sebelumnya
-    previous_value = df_kas.at[selected_bulan, siswa]
+    # Ambil nilai sebelumnya dari df_kas
+    previous_value = str(df_kas.at[selected_bulan, siswa]) if siswa in df_kas.columns else ""
 
     # Tentukan default status
-    if previous_value == "TRUE":
+    if previous_value.upper() == "TRUE":
         default_option = "Sudah Bayar"
-        previous_nominal = ""
-    elif str(previous_value).replace('.', '', 1).isdigit():
+    elif previous_value.strip().isdigit() or previous_value.replace('.', '', 1).isdigit():
         default_option = "Bayar Sebagian"
-        previous_nominal = str(int(float(previous_value)))
     else:
         default_option = "Belum Bayar"
-        previous_nominal = ""
+
+    # Ambil nilai nominal sebelumnya (jika ada)
+    previous_nominal = previous_value if default_option == "Bayar Sebagian" else ""
 
     with col_status:
         status = st.selectbox(
@@ -98,7 +98,6 @@ for siswa in nama_siswa:
             df_kas.at[selected_bulan, siswa] = "TRUE"
         else:
             df_kas.at[selected_bulan, siswa] = ""
-
 
 # Tombol Simpan
 if st.button("📅 Simpan Data"):
