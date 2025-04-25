@@ -81,9 +81,9 @@ for siswa in nama_siswa:
             nominal = st.text_input(label="", key=key_nominal)
             # Memastikan nominal berupa angka dan tanpa desimal jika bilangan bulat
             if nominal.strip().isdigit():  # Bilangan bulat
-                st.session_state.data_siswa.at[selected_bulan, siswa] = int(nominal.strip())
+                st.session_state.data_siswa.at[selected_bulan, siswa] = int(nominal.strip())  # Menyimpan sebagai integer
             elif nominal.strip().replace('.', '', 1).isdigit() and nominal.count('.') == 1:  # Bilangan desimal
-                st.session_state.data_siswa.at[selected_bulan, siswa] = float(nominal.strip())
+                st.session_state.data_siswa.at[selected_bulan, siswa] = float(nominal.strip())  # Menyimpan sebagai float
             else:
                 st.warning(f"Nominal tidak valid untuk: {siswa}")
         elif status == "Sudah Bayar":
