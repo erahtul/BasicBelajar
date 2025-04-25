@@ -34,26 +34,46 @@ st.markdown("### 🔄 Input Data Kas")
 selected_bulan = st.selectbox("Pilih Bulan", bulan, index=0)
 st.markdown(f"#### 📅 Input untuk Bulan **{selected_bulan}**")
 
-col1, col2, col3 = st.columns([3, 2, 1])
-with col1:
-    for siswa in nama_siswa:
-        key_input = f"{selected_bulan}_{siswa}"
-        current_val = st.session_state.data_siswa.loc[selected_bulan, siswa]
-        val = st.text_input(f"{siswa}", value=str(current_val), key=key_input)
+st.markdown("#### 🧾 Formulir Input Kas")
+st.write("Silakan isi status kas masing-masing siswa di bawah ini:")
 
-        # Normalisasi input
-        if val.strip().lower() == "true":
+# Header Tabel
+col_nama, col_status, col_nominal = st.columns([3, 2, 2])
+with col_nama:
+    st.markdown("**Nama Siswa**")
+with col_status:
+    st.markdown("**Status**")
+with col_nominal:
+    st.markdown("**Nominal**")
+
+# Loop input per siswa
+for siswa in nama_siswa:
+    col_nama, col_status, col_nominal = st.columns([3, 2, 2])
+
+    with col_nama:
+        st.markdown(siswa)
+
+    key_status = f"{selected_bulan}_{siswa}_status"
+    key_nominal = f"{selected_bulan}_{siswa}_nominal"
+
+    with col_status:
+        status = st.selectbox(
+            label="",
+            options=["Belum Bayar", "Sudah Bayar", "Bayar Sebagian"],
+            key=key_status
+        )
+
+    with col_nominal:
+        if status == "Bayar Sebagian":
+            nominal = st.text_input(label="", key=key_nominal)
+            if nominal.strip().isdigit() or nominal.replace('.', '', 1).isdigit():
+                st.session_state.data_siswa.loc[selected_bulan, siswa] = nominal.strip()
+            else:
+                st.warning(f"Nominal tidak valid untuk: {siswa}")
+        elif status == "Sudah Bayar":
             st.session_state.data_siswa.loc[selected_bulan, siswa] = "TRUE"
-        elif val.strip().isdigit():
-            st.session_state.data_siswa.loc[selected_bulan, siswa] = val.strip()
-        elif val.replace(".", "", 1).isdigit():
-            # Jika pengguna tetap masukkan desimal seperti 5000.50
-            st.session_state.data_siswa.loc[selected_bulan, siswa] = val.strip()
-        elif val.strip() == "":
-            st.session_state.data_siswa.loc[selected_bulan, siswa] = ""
         else:
-            st.warning(f"Isi angka atau 'True' untuk: {siswa}")
-
+            st.session_state.data_siswa.loc[selected_bulan, siswa] = ""
 
 # Rekap dan Tabel
 import matplotlib.pyplot as plt
