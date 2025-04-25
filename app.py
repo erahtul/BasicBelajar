@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
+import os
 from io import BytesIO
+import matplotlib.pyplot as plt
+from PIL import Image
+import io
 
 # Setup
 st.set_page_config(page_title="Kas Kelas VII", layout="wide")
@@ -24,29 +28,9 @@ nama_siswa = [
 
 bulan = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Febuari", "Maret", "April", "Mei", "Juni"]
 
-# Inisialisasi session state
-import os
-
-# Path file penyimpanan data (di folder yang sama)
-DATA_FILE = "data_kas.xlsx"
-
-# Fungsi load data dari file Excel jika ada
-def load_data():
-    if os.path.exists(DATA_FILE):
-        return pd.read_excel(DATA_FILE, index_col=0)
-    else:
-        df = pd.DataFrame(index=bulan, columns=nama_siswa)
-        return df.fillna("")
-
-# Fungsi simpan data ke Excel
-def save_data(df):
-    df.to_excel(DATA_FILE)
-
-import os
-
 DATA_FILE = "data_kas.csv"
 
-# Fungsi untuk memuat data dari file
+# Fungsi simpan dan load
 def load_data():
     if os.path.exists(DATA_FILE):
         return pd.read_csv(DATA_FILE, index_col=0)
@@ -54,119 +38,60 @@ def load_data():
         df = pd.DataFrame(index=bulan, columns=nama_siswa)
         return df.fillna("")
 
-# Fungsi untuk menyimpan data ke file
 def save_data(df):
     df.to_csv(DATA_FILE)
 
-# Inisialisasi session state dari file
+# Inisialisasi session state
 if "data_siswa" not in st.session_state:
     st.session_state.data_siswa = load_data()
-if "data_siswa" not in st.session_state:
-    st.session_state.data_siswa = pd.DataFrame(index=bulan, columns=nama_siswa)
-    st.session_state.data_siswa.fillna("", inplace=True)
 
 # Layout input
 st.markdown("### 🔄 Input Data Kas")
 selected_bulan = st.selectbox("Pilih Bulan", bulan, index=0)
 st.markdown(f"#### 📅 Input untuk Bulan **{selected_bulan}**")
 
-st.markdown("#### 🧾 Formulir Input Kas")
-st.write("Silakan isi status kas masing-masing siswa di bawah ini:")
-
-# Header Tabel
-col_nama, col_status, col_nominal = st.columns([3, 2, 2])
-with col_nama:
-    st.markdown("**Nama Siswa**")
-with col_status:
-    st.markdown("**Status**")
-with col_nominal:
-    st.markdown("**Nominal**")
-
-# Loop input per siswa
-for siswa in nama_siswa:
-    col_nama, col_status, col_nominal = st.columns([3, 2, 2])
-
-    with col_nama:
-        st.markdown(siswa)
-
-    key_status = f"{selected_bulan}_{siswa}_status"
-    key_nominal = f"{selected_bulan}_{siswa}_nominal"
-
-    with col_status:
-        status = st.selectbox(
-            label="",
-            options=["Belum Bayar", "Sudah Bayar", "Bayar Sebagian"],
-            key=key_status
+col1, col2, col3 = st.columns([3, 2, 1])
+with col1:
+    for siswa in nama_siswa:
+        pilihan = st.radio(
+            label=siswa,
+            options=["Belum Bayar", "Sudah (True)", "Sebagian (isi nominal)"],
+            key=f"opsi_{selected_bulan}_{siswa}",
+            horizontal=True
         )
-
-    with col_nominal:
-        if status == "Bayar Sebagian":
-            nominal = st.text_input(label="", key=key_nominal)
-            if nominal.strip().isdigit() or nominal.replace('.', '', 1).isdigit():
-                st.session_state.data_siswa.loc[selected_bulan, siswa] = nominal.strip()
-            else:
-                st.warning(f"Nominal tidak valid untuk: {siswa}")
-        elif status == "Sudah Bayar":
+        if pilihan == "Sudah (True)":
             st.session_state.data_siswa.loc[selected_bulan, siswa] = "TRUE"
+        elif pilihan == "Sebagian (isi nominal)":
+            nominal = st.text_input(f"Nominal untuk {siswa}", key=f"nominal_{selected_bulan}_{siswa}")
+            st.session_state.data_siswa.loc[selected_bulan, siswa] = nominal
         else:
             st.session_state.data_siswa.loc[selected_bulan, siswa] = ""
+
+# Tombol Simpan
 if st.button("💾 Simpan Data"):
     save_data(st.session_state.data_siswa)
     st.success("Data berhasil disimpan!")
-    
-# Rekap dan Tabel
-import matplotlib.pyplot as plt
-import seaborn as sns
-from PIL import Image
-import io
 
-# Fungsi untuk membuat gambar dari DataFrame
-def dataframe_to_image(df):
-    plt.figure(figsize=(20, len(df) * 0.5))
-    sns.set(font_scale=0.8)
-    sns.heatmap(df.isna(), cbar=False, cmap='Greys', linewidths=0.5, linecolor='gray')  # hanya untuk garis
-    plt.title("Rekap Kas Kelas", fontsize=16)
-    plt.axis('off')
-
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight', dpi=200)
-    plt.close()
-    buf.seek(0)
-    return buf
-
-# Buat gambar dari DataFrame
+# Tampilkan tabel rekap
 st.markdown("---")
 st.markdown("### 📊 Rekap Kas Kelas")
-df_display = st.session_state.data_siswa.T  # Transpose supaya nama siswa di kiri
+df_display = st.session_state.data_siswa.T
 st.dataframe(df_display, use_container_width=True, height=600)
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-from PIL import Image
-import io
-
-# Fungsi untuk membuat gambar dari DataFrame
+# Download gambar
 def dataframe_to_image(df):
-    # Menyalin dataframe agar tidak mengubah aslinya
-    df_vis = df.copy()
-
-    # Konversi ke string agar seaborn bisa menampilkannya sebagai teks
-    df_vis = df_vis.fillna("").astype(str)
-
-    # Ukuran gambar dinamis tergantung banyaknya siswa dan bulan
+    df_vis = df.fillna("").astype(str)
     n_rows, n_cols = df_vis.shape
     fig, ax = plt.subplots(figsize=(1.5 + n_cols, 0.4 + n_rows * 0.4))
 
-    # Warna latar berdasarkan isi sel
     def cell_color(val):
         if val.upper() == "TRUE":
-            return "#d4edda"  # hijau muda
+            return "#d4edda"
         elif val.strip().isdigit() or val.replace('.', '', 1).isdigit():
-            return "#cce5ff"  # biru muda
+            return "#cce5ff"
         else:
-            return "#ffffff"  # putih
+            return "#ffffff"
 
-    # Buat grid berwarna
     cell_colors = [[cell_color(val) for val in row] for row in df_vis.values]
 
     table = ax.table(cellText=df_vis.values,
@@ -182,20 +107,15 @@ def dataframe_to_image(df):
     ax.axis('off')
     plt.title("Rekap Kas Kelas VII SMPI Al-HAYYAN", fontsize=14, weight='bold', pad=20)
 
-    # Simpan ke buffer gambar
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', dpi=200)
     plt.close()
     buf.seek(0)
     return buf
 
-# Buat gambar dari DataFrame
 img_buf = dataframe_to_image(df_display)
-
-# Tampilkan gambar di Streamlit
 st.image(img_buf, caption="Rekap Kas Kelas (Gambar)")
 
-# Tombol download gambar
 st.download_button(
     label="🖼️ Download Rekap Kas sebagai Gambar (PNG)",
     data=img_buf,
@@ -203,7 +123,7 @@ st.download_button(
     mime="image/png"
 )
 
-# Download sebagai Excel
+# Download Excel
 def to_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -211,7 +131,6 @@ def to_excel(df):
     return output.getvalue()
 
 excel_data = to_excel(df_display)
-
 st.download_button(
     label="📥 Download sebagai Excel",
     data=excel_data,
