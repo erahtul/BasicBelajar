@@ -37,21 +37,112 @@ st.markdown(f"#### 📅 Input untuk Bulan **{selected_bulan}**")
 col1, col2, col3 = st.columns([3, 2, 1])
 with col1:
     for siswa in nama_siswa:
-        val = st.text_input(f"{siswa}", value=st.session_state.data_siswa.loc[selected_bulan, siswa], key=f"{selected_bulan}_{siswa}")
-        if val.lower() == "true":
+        key_input = f"{selected_bulan}_{siswa}"
+        current_val = st.session_state.data_siswa.loc[selected_bulan, siswa]
+        val = st.text_input(f"{siswa}", value=str(current_val), key=key_input)
+
+        # Normalisasi input
+        if val.strip().lower() == "true":
             st.session_state.data_siswa.loc[selected_bulan, siswa] = "TRUE"
+        elif val.strip().isdigit():
+            st.session_state.data_siswa.loc[selected_bulan, siswa] = val.strip()
+        elif val.replace(".", "", 1).isdigit():
+            # Jika pengguna tetap masukkan desimal seperti 5000.50
+            st.session_state.data_siswa.loc[selected_bulan, siswa] = val.strip()
+        elif val.strip() == "":
+            st.session_state.data_siswa.loc[selected_bulan, siswa] = ""
         else:
-            try:
-                nominal = float(val)
-                st.session_state.data_siswa.loc[selected_bulan, siswa] = nominal
-            except ValueError:
-                st.warning(f"Isi angka atau 'True' untuk: {siswa}")
+            st.warning(f"Isi angka atau 'True' untuk: {siswa}")
+
 
 # Rekap dan Tabel
+import matplotlib.pyplot as plt
+import seaborn as sns
+from PIL import Image
+import io
+
+# Fungsi untuk membuat gambar dari DataFrame
+def dataframe_to_image(df):
+    plt.figure(figsize=(20, len(df) * 0.5))
+    sns.set(font_scale=0.8)
+    sns.heatmap(df.isna(), cbar=False, cmap='Greys', linewidths=0.5, linecolor='gray')  # hanya untuk garis
+    plt.title("Rekap Kas Kelas", fontsize=16)
+    plt.axis('off')
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', dpi=200)
+    plt.close()
+    buf.seek(0)
+    return buf
+
+# Buat gambar dari DataFrame
 st.markdown("---")
 st.markdown("### 📊 Rekap Kas Kelas")
 df_display = st.session_state.data_siswa.T  # Transpose supaya nama siswa di kiri
 st.dataframe(df_display, use_container_width=True, height=600)
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+from PIL import Image
+import io
+
+# Fungsi untuk membuat gambar dari DataFrame
+def dataframe_to_image(df):
+    # Menyalin dataframe agar tidak mengubah aslinya
+    df_vis = df.copy()
+
+    # Konversi ke string agar seaborn bisa menampilkannya sebagai teks
+    df_vis = df_vis.fillna("").astype(str)
+
+    # Ukuran gambar dinamis tergantung banyaknya siswa dan bulan
+    n_rows, n_cols = df_vis.shape
+    fig, ax = plt.subplots(figsize=(1.5 + n_cols, 0.4 + n_rows * 0.4))
+
+    # Warna latar berdasarkan isi sel
+    def cell_color(val):
+        if val.upper() == "TRUE":
+            return "#d4edda"  # hijau muda
+        elif val.strip().isdigit() or val.replace('.', '', 1).isdigit():
+            return "#cce5ff"  # biru muda
+        else:
+            return "#ffffff"  # putih
+
+    # Buat grid berwarna
+    cell_colors = [[cell_color(val) for val in row] for row in df_vis.values]
+
+    table = ax.table(cellText=df_vis.values,
+                     rowLabels=df_vis.index,
+                     colLabels=df_vis.columns,
+                     cellColours=cell_colors,
+                     loc='center',
+                     cellLoc='center')
+
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    table.scale(1.2, 1.2)
+    ax.axis('off')
+    plt.title("Rekap Kas Kelas VII SMPI Al-HAYYAN", fontsize=14, weight='bold', pad=20)
+
+    # Simpan ke buffer gambar
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', dpi=200)
+    plt.close()
+    buf.seek(0)
+    return buf
+
+# Buat gambar dari DataFrame
+img_buf = dataframe_to_image(df_display)
+
+# Tampilkan gambar di Streamlit
+st.image(img_buf, caption="Rekap Kas Kelas (Gambar)")
+
+# Tombol download gambar
+st.download_button(
+    label="🖼️ Download Rekap Kas sebagai Gambar (PNG)",
+    data=img_buf,
+    file_name="rekap_kas_kelas_vii.png",
+    mime="image/png"
+)
 
 # Download sebagai Excel
 def to_excel(df):
