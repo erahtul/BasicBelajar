@@ -80,16 +80,17 @@ for siswa in nama_siswa:
         if status == "Bayar Sebagian":
             nominal = st.text_input(label="", key=key_nominal)
             if nominal.strip().isdigit() or nominal.replace('.', '', 1).isdigit():
-                st.session_state.data_siswa.loc[selected_bulan, siswa] = nominal.strip()
+                st.session_state.data_siswa.at[selected_bulan, siswa] = nominal.strip()
             else:
                 st.warning(f"Nominal tidak valid untuk: {siswa}")
         elif status == "Sudah Bayar":
-            st.session_state.data_siswa.loc[selected_bulan, siswa] = "TRUE"
+            st.session_state.data_siswa.at[selected_bulan, siswa] = "TRUE"
         else:
-            st.session_state.data_siswa.loc[selected_bulan, siswa] = ""
+            st.session_state.data_siswa.at[selected_bulan, siswa] = ""
 
 # Tombol Simpan
 if st.button("📅 Simpan Data"):
+    # Pastikan data terbaru disalin ke df_kas
     df_kas = st.session_state.data_siswa.copy()  # Menyimpan salinan dari session_state ke file
     df_kas.to_excel(DATA_FILE)
     st.success("Data berhasil disimpan dan tidak akan hilang saat refresh!")
@@ -137,4 +138,27 @@ def dataframe_to_image(df):
 
 # Gambar dan download
 img_buf = dataframe_to_image(df_display)
-st.image(img_buf,_
+st.image(img_buf, caption="Rekap Kas Kelas (Gambar)")
+
+st.download_button(
+    label="🖼️ Download Rekap Kas sebagai Gambar (PNG)",
+    data=img_buf,
+    file_name="rekap_kas_kelas_vii.png",
+    mime="image/png"
+)
+
+# Download Excel
+def to_excel(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=True, sheet_name='Kas Siswa')
+    return output.getvalue()
+
+excel_data = to_excel(df_display)
+
+st.download_button(
+    label="📅 Download sebagai Excel",
+    data=excel_data,
+    file_name='kas_kelas_vii_smpi_alhayyan.xlsx',
+    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+)
