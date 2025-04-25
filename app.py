@@ -39,12 +39,19 @@ bulan = ["Juli", "Agustus", "September", "Oktober", "November", "Desember",
          "Januari", "Febuari", "Maret", "April", "Mei", "Juni"]
 
 DATA_FILE = "kas_data.xlsx"
+PENGELUARAN_FILE = "pengeluaran_data.xlsx"
 
 # Load or initialize data
 if os.path.exists(DATA_FILE):
     df_kas = pd.read_excel(DATA_FILE, index_col=0)
 else:
     df_kas = pd.DataFrame(index=bulan, columns=nama_siswa).fillna("")
+
+# Load or initialize pengeluaran data
+if os.path.exists(PENGELUARAN_FILE):
+    df_pengeluaran = pd.read_excel(PENGELUARAN_FILE)
+else:
+    df_pengeluaran = pd.DataFrame(columns=["Bulan", "Keterangan", "Nominal"])
 
 # Layout input
 st.markdown("### 🔄 Input Data Kas")
@@ -73,21 +80,25 @@ for siswa in nama_siswa:
     key_status = f"{selected_bulan}_{siswa}_status"
     key_nominal = f"{selected_bulan}_{siswa}_nominal"
 
-    # Ambil nilai sebelumnya dari df_kas
-    previous_value = str(df_kas.at[selected_bulan, siswa]) if siswa in df_kas.columns else ""
+    # Mengambil nilai sebelumnya dari DataFrame
+    previous_value = df_kas.at[selected_bulan, siswa]
 
-    # Tentukan default status
-    if previous_value.upper() == "TRUE":
+    # Menentukan default option dan previous nominal berdasarkan previous_value
+    if previous_value == "TRUE":
         default_option = "Sudah Bayar"
-    elif previous_value.strip().isdigit() or previous_value.replace('.', '', 1).isdigit():
+        previous_nominal = "0"
+    elif isinstance(previous_value, (int, float)):  # Cek jika previous_value adalah angka
         default_option = "Bayar Sebagian"
+        previous_nominal = str(previous_value)
+    elif isinstance(previous_value, str) and previous_value.strip().isdigit():
+        default_option = "Bayar Sebagian"
+        previous_nominal = previous_value.strip()
     else:
         default_option = "Belum Bayar"
-
-    # Ambil nilai nominal sebelumnya (jika ada)
-    previous_nominal = previous_value if default_option == "Bayar Sebagian" else ""
+        previous_nominal = ""
 
     with col_status:
+        # Pilih status berdasarkan default_option
         status = st.selectbox(
             label="",
             options=["Belum Bayar", "Sudah Bayar", "Bayar Sebagian"],
@@ -96,30 +107,85 @@ for siswa in nama_siswa:
         )
 
     with col_nominal:
-        if status == "Bayar Sebagian":
+        # Jika status adalah 'Sudah Bayar' atau 'Bayar Sebagian', input nominal
+        if status in ["Sudah Bayar", "Bayar Sebagian"]:
             nominal = st.text_input(label="", key=key_nominal, value=previous_nominal)
-            if nominal.strip().isdigit() or nominal.replace('.', '', 1).isdigit():
+
+            # Cek apakah nominal valid (angka atau format desimal)
+            if nominal.strip().replace('.', '', 1).isdigit() and nominal.count('.') <= 1:
+                # Jika valid, simpan sebagai angka di DataFrame
                 df_kas.at[selected_bulan, siswa] = str(int(float(nominal.strip())))
             else:
                 st.warning(f"Nominal tidak valid untuk: {siswa}")
-        elif status == "Sudah Bayar":
-            df_kas.at[selected_bulan, siswa] = "TRUE"
         else:
+            # Jika status 'Belum Bayar', kosongkan nilai nominal
             df_kas.at[selected_bulan, siswa] = ""
 
-# Tombol Simpan
-if st.button("📅 Simpan Data"):
-    # Pastikan data terbaru disalin ke df_kas
-    df_kas.to_excel(DATA_FILE)
-    st.success("Data berhasil disimpan dan tidak akan hilang saat refresh!")
+# Input pengeluaran
+st.header("💸 Input Pengeluaran")
+st.markdown("Masukkan pengeluaran untuk bulan ini:")
 
-# Rekap dan Tabel
-st.markdown("---")
-st.markdown("### 📊 Rekap Kas Kelas")
+# Formulir untuk input pengeluaran utama
+with st.form("form_pengeluaran"):
+    col1, col2 = st.columns(2)
+    with col1:
+        keterangan = st.text_input("Keterangan")
+    with col2:
+        nominal_pengeluaran = st.number_input("Nominal", min_value=0, step=1000)
+    
+    submitted = st.form_submit_button("Simpan Pengeluaran")
+    
+    # Menyimpan pengeluaran jika sudah diinput
+    if submitted and keterangan and nominal_pengeluaran > 0:
+        new_row = {"Bulan": selected_bulan, "Keterangan": keterangan, "Nominal": int(nominal_pengeluaran)}
+        df_pengeluaran = pd.concat([df_pengeluaran, pd.DataFrame([new_row])], ignore_index=True)
+        df_pengeluaran.to_excel(PENGELUARAN_FILE, index=False)
+        st.success("Pengeluaran berhasil disimpan!")
+
+    # Tombol opsional untuk menambah tabel input pengeluaran tambahan
+    add_table = st.checkbox("Tambahkan Pengeluaran Lainnya", value=False)
+    
+    if add_table:
+        st.write("Masukkan pengeluaran tambahan di bawah ini:")
+        # Membuat tabel pengeluaran tambahan
+        num_rows = st.number_input("Berapa banyak baris yang ingin ditambahkan?", min_value=1, max_value=10, value=1, step=1)
+        
+        # List untuk menampung data input pengeluaran tambahan
+        additional_data = []
+    
+        # Loop untuk input beberapa pengeluaran
+        for i in range(num_rows):
+            col1, col2 = st.columns(2)
+            with col1:
+                keterangan = st.text_input(f"Keterangan Pengeluaran {i+1}")
+            with col2:
+                nominal = st.number_input(f"Nominal Pengeluaran {i+1}", min_value=0, step=1000)
+            
+            if keterangan and nominal > 0:
+                additional_data.append({"Bulan": selected_bulan, "Keterangan": keterangan, "Nominal": nominal})
+        
+        # Menampilkan tabel pengeluaran tambahan
+        if additional_data:
+            df_additional = pd.DataFrame(additional_data)
+            st.dataframe(df_additional)
+            
+            # Tombol untuk menyimpan pengeluaran tambahan
+            if st.button("Simpan Pengeluaran Tambahan"):
+                df_pengeluaran = pd.concat([df_pengeluaran, df_additional], ignore_index=True)
+                df_pengeluaran.to_excel(PENGELUARAN_FILE, index=False)
+                st.success("Pengeluaran tambahan berhasil disimpan!")
+
+# Tombol simpan
+if st.button("💾 Simpan Kas Siswa"):
+    df_kas.to_excel(DATA_FILE)
+    st.success("Data kas siswa berhasil disimpan.")
+
+# Rekap
+st.header("📊 Rekap Kas")
 df_display = df_kas.T
 st.dataframe(df_display, use_container_width=True, height=600)
 
-# Fungsi untuk membuat gambar dari DataFrame
+# Gambar
 def dataframe_to_image(df):
     df_vis = df.fillna("").astype(str)
     n_rows, n_cols = df_vis.shape
@@ -146,7 +212,7 @@ def dataframe_to_image(df):
     table.set_fontsize(8)
     table.scale(1.2, 1.2)
     ax.axis('off')
-    plt.title("Rekap Kas Kelas VII SMPI Al-HAYYAN", fontsize=14, weight='bold', pad=20)
+    plt.title("Rekap Kas Kelas VII SMPI Al-HAYYAN", fontsize=24, weight='bold', pad=20)
 
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', dpi=200)
@@ -154,7 +220,6 @@ def dataframe_to_image(df):
     buf.seek(0)
     return buf
 
-# Gambar dan download
 img_buf = dataframe_to_image(df_display)
 st.image(img_buf, caption="Rekap Kas Kelas (Gambar)")
 
@@ -175,8 +240,25 @@ def to_excel(df):
 excel_data = to_excel(df_display)
 
 st.download_button(
-    label="📅 Download sebagai Excel",
+    label="📥 Download sebagai Excel",
     data=excel_data,
     file_name='kas_kelas_vii_smpi_alhayyan.xlsx',
     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 )
+
+# Rekap Total
+st.header("💰 Total Rekapitulasi")
+total_masuk = 0
+for val in df_kas.values.flatten():
+    if isinstance(val, str) and val.upper() == "TRUE":
+        total_masuk += 10000
+    elif str(val).strip().isdigit() or str(val).replace('.', '', 1).isdigit():
+        total_masuk += int(float(val))
+
+total_pengeluaran = df_pengeluaran[df_pengeluaran['Bulan'] == selected_bulan]['Nominal'].sum()
+sisa_kas = total_masuk - total_pengeluaran
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Total Kas Masuk", f"Rp {total_masuk:,}")
+col2.metric("Total Pengeluaran", f"Rp {total_pengeluaran:,}")
+col3.metric("Sisa Kas", f"Rp {sisa_kas:,}")
