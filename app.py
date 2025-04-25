@@ -42,6 +42,22 @@ def load_data():
 def save_data(df):
     df.to_excel(DATA_FILE)
 
+import os
+
+DATA_FILE = "data_kas.csv"
+
+# Fungsi untuk memuat data dari file
+def load_data():
+    if os.path.exists(DATA_FILE):
+        return pd.read_csv(DATA_FILE, index_col=0)
+    else:
+        df = pd.DataFrame(index=bulan, columns=nama_siswa)
+        return df.fillna("")
+
+# Fungsi untuk menyimpan data ke file
+def save_data(df):
+    df.to_csv(DATA_FILE)
+
 # Inisialisasi session state dari file
 if "data_siswa" not in st.session_state:
     st.session_state.data_siswa = load_data()
