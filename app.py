@@ -38,10 +38,6 @@ if os.path.exists(DATA_FILE):
 else:
     df_kas = pd.DataFrame(index=bulan, columns=nama_siswa).fillna("")
 
-# Inisialisasi session_state untuk menyimpan data
-if "data_siswa" not in st.session_state:
-    st.session_state.data_siswa = df_kas.copy()  # Menyimpan salinan DataFrame di session_state
-
 # Layout input
 st.markdown("### 🔄 Input Data Kas")
 selected_bulan = st.selectbox("Pilih Bulan", bulan, index=0)
@@ -69,32 +65,44 @@ for siswa in nama_siswa:
     key_status = f"{selected_bulan}_{siswa}_status"
     key_nominal = f"{selected_bulan}_{siswa}_nominal"
 
+    # Ambil data sebelumnya
+    previous_value = df_kas.at[selected_bulan, siswa]
+
+    # Tentukan default status
+    if previous_value == "TRUE":
+        default_option = "Sudah Bayar"
+        previous_nominal = ""
+    elif str(previous_value).replace('.', '', 1).isdigit():
+        default_option = "Bayar Sebagian"
+        previous_nominal = str(int(float(previous_value)))
+    else:
+        default_option = "Belum Bayar"
+        previous_nominal = ""
+
     with col_status:
         status = st.selectbox(
             label="",
             options=["Belum Bayar", "Sudah Bayar", "Bayar Sebagian"],
+            index=["Belum Bayar", "Sudah Bayar", "Bayar Sebagian"].index(default_option),
             key=key_status
         )
 
     with col_nominal:
         if status == "Bayar Sebagian":
-            nominal = st.text_input(label="", key=key_nominal)
-            # Memastikan nominal berupa angka dan tanpa desimal jika bilangan bulat
-            if nominal.strip().isdigit():  # Bilangan bulat
-                st.session_state.data_siswa.at[selected_bulan, siswa] = int(nominal.strip())  # Menyimpan sebagai integer
-            elif nominal.strip().replace('.', '', 1).isdigit() and nominal.count('.') == 1:  # Bilangan desimal
-                st.session_state.data_siswa.at[selected_bulan, siswa] = float(nominal.strip())  # Menyimpan sebagai float
+            nominal = st.text_input(label="", key=key_nominal, value=previous_nominal)
+            if nominal.strip().isdigit() or nominal.replace('.', '', 1).isdigit():
+                df_kas.at[selected_bulan, siswa] = str(int(float(nominal.strip())))
             else:
                 st.warning(f"Nominal tidak valid untuk: {siswa}")
         elif status == "Sudah Bayar":
-            st.session_state.data_siswa.at[selected_bulan, siswa] = "TRUE"
+            df_kas.at[selected_bulan, siswa] = "TRUE"
         else:
-            st.session_state.data_siswa.at[selected_bulan, siswa] = ""
+            df_kas.at[selected_bulan, siswa] = ""
+
 
 # Tombol Simpan
 if st.button("📅 Simpan Data"):
     # Pastikan data terbaru disalin ke df_kas
-    df_kas = st.session_state.data_siswa.copy()  # Menyimpan salinan dari session_state ke file
     df_kas.to_excel(DATA_FILE)
     st.success("Data berhasil disimpan dan tidak akan hilang saat refresh!")
 
