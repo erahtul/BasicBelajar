@@ -79,8 +79,11 @@ for siswa in nama_siswa:
     with col_nominal:
         if status == "Bayar Sebagian":
             nominal = st.text_input(label="", key=key_nominal)
-            if nominal.strip().isdigit() or nominal.replace('.', '', 1).isdigit():
-                st.session_state.data_siswa.at[selected_bulan, siswa] = nominal.strip()
+            # Memastikan nominal berupa angka dan tanpa desimal jika bilangan bulat
+            if nominal.strip().isdigit():  # Bilangan bulat
+                st.session_state.data_siswa.at[selected_bulan, siswa] = int(nominal.strip())
+            elif nominal.strip().replace('.', '', 1).isdigit() and nominal.count('.') == 1:  # Bilangan desimal
+                st.session_state.data_siswa.at[selected_bulan, siswa] = float(nominal.strip())
             else:
                 st.warning(f"Nominal tidak valid untuk: {siswa}")
         elif status == "Sudah Bayar":
