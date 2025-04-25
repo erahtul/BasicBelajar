@@ -38,6 +38,10 @@ if os.path.exists(DATA_FILE):
 else:
     df_kas = pd.DataFrame(index=bulan, columns=nama_siswa).fillna("")
 
+# Inisialisasi session_state untuk menyimpan data
+if "data_siswa" not in st.session_state:
+    st.session_state.data_siswa = df_kas.copy()  # Menyimpan salinan DataFrame di session_state
+
 # Layout input
 st.markdown("### 🔄 Input Data Kas")
 selected_bulan = st.selectbox("Pilih Bulan", bulan, index=0)
@@ -86,6 +90,7 @@ for siswa in nama_siswa:
 
 # Tombol Simpan
 if st.button("📅 Simpan Data"):
+    df_kas = st.session_state.data_siswa.copy()  # Menyimpan salinan dari session_state ke file
     df_kas.to_excel(DATA_FILE)
     st.success("Data berhasil disimpan dan tidak akan hilang saat refresh!")
 
@@ -132,27 +137,4 @@ def dataframe_to_image(df):
 
 # Gambar dan download
 img_buf = dataframe_to_image(df_display)
-st.image(img_buf, caption="Rekap Kas Kelas (Gambar)")
-
-st.download_button(
-    label="🖼️ Download Rekap Kas sebagai Gambar (PNG)",
-    data=img_buf,
-    file_name="rekap_kas_kelas_vii.png",
-    mime="image/png"
-)
-
-# Download Excel
-def to_excel(df):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=True, sheet_name='Kas Siswa')
-    return output.getvalue()
-
-excel_data = to_excel(df_display)
-
-st.download_button(
-    label="📅 Download sebagai Excel",
-    data=excel_data,
-    file_name='kas_kelas_vii_smpi_alhayyan.xlsx',
-    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-)
+st.image(img_buf,_
