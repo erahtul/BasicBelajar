@@ -43,16 +43,46 @@ st.markdown("### 🔄 Input Data Kas")
 selected_bulan = st.selectbox("Pilih Bulan", bulan, index=0)
 st.markdown(f"#### 📅 Input untuk Bulan **{selected_bulan}**")
 
+st.markdown("#### 🧾 Formulir Input Kas")
+st.write("Silakan isi status kas masing-masing siswa di bawah ini:")
+
+# Header Tabel
+col_nama, col_status, col_nominal = st.columns([3, 2, 2])
+with col_nama:
+    st.markdown("**Nama Siswa**")
+with col_status:
+    st.markdown("**Status**")
+with col_nominal:
+    st.markdown("**Nominal**")
+
+# Loop input per siswa
 for siswa in nama_siswa:
-    val = st.text_input(f"{siswa}", value=df_kas.loc[selected_bulan, siswa], key=f"{selected_bulan}_{siswa}")
-    if val.lower() == "true":
-        df_kas.loc[selected_bulan, siswa] = "TRUE"
-    else:
-        try:
-            nominal = float(val)
-            df_kas.loc[selected_bulan, siswa] = nominal
-        except ValueError:
-            st.warning(f"Isi angka atau 'True' untuk: {siswa}")
+    col_nama, col_status, col_nominal = st.columns([3, 2, 2])
+
+    with col_nama:
+        st.markdown(siswa)
+
+    key_status = f"{selected_bulan}_{siswa}_status"
+    key_nominal = f"{selected_bulan}_{siswa}_nominal"
+
+    with col_status:
+        status = st.selectbox(
+            label="",
+            options=["Belum Bayar", "Sudah Bayar", "Bayar Sebagian"],
+            key=key_status
+        )
+
+    with col_nominal:
+        if status == "Bayar Sebagian":
+            nominal = st.text_input(label="", key=key_nominal)
+            if nominal.strip().isdigit() or nominal.replace('.', '', 1).isdigit():
+                st.session_state.data_siswa.loc[selected_bulan, siswa] = nominal.strip()
+            else:
+                st.warning(f"Nominal tidak valid untuk: {siswa}")
+        elif status == "Sudah Bayar":
+            st.session_state.data_siswa.loc[selected_bulan, siswa] = "TRUE"
+        else:
+            st.session_state.data_siswa.loc[selected_bulan, siswa] = ""
 
 # Tombol Simpan
 if st.button("📅 Simpan Data"):
