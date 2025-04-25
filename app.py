@@ -10,6 +10,14 @@ import io
 # Setup
 st.set_page_config(page_title="Kas Kelas VII", layout="wide")
 
+# Selamat Datang
+st.markdown("""
+<div style="text-align: center; padding: 20px;">
+    <h1 style="color:#4CAF50;">Welcome My Application</h1>
+    <p style="font-size:14px; color:gray;">Created by <b>Bang Imat</b></p>
+</div>
+""", unsafe_allow_html=True)
+
 # Judul
 st.markdown("<h2 style='text-align: center;'>SMPI Al HAYYAN</h2>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center;'>Kas Ortu/Wali Kelas VII</h3>", unsafe_allow_html=True)
