@@ -25,6 +25,26 @@ nama_siswa = [
 bulan = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Febuari", "Maret", "April", "Mei", "Juni"]
 
 # Inisialisasi session state
+import os
+
+# Path file penyimpanan data (di folder yang sama)
+DATA_FILE = "data_kas.xlsx"
+
+# Fungsi load data dari file Excel jika ada
+def load_data():
+    if os.path.exists(DATA_FILE):
+        return pd.read_excel(DATA_FILE, index_col=0)
+    else:
+        df = pd.DataFrame(index=bulan, columns=nama_siswa)
+        return df.fillna("")
+
+# Fungsi simpan data ke Excel
+def save_data(df):
+    df.to_excel(DATA_FILE)
+
+# Inisialisasi session state dari file
+if "data_siswa" not in st.session_state:
+    st.session_state.data_siswa = load_data()
 if "data_siswa" not in st.session_state:
     st.session_state.data_siswa = pd.DataFrame(index=bulan, columns=nama_siswa)
     st.session_state.data_siswa.fillna("", inplace=True)
@@ -74,7 +94,10 @@ for siswa in nama_siswa:
             st.session_state.data_siswa.loc[selected_bulan, siswa] = "TRUE"
         else:
             st.session_state.data_siswa.loc[selected_bulan, siswa] = ""
-
+if st.button("💾 Simpan Data"):
+    save_data(st.session_state.data_siswa)
+    st.success("Data berhasil disimpan!")
+    
 # Rekap dan Tabel
 import matplotlib.pyplot as plt
 import seaborn as sns
