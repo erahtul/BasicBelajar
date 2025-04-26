@@ -43,7 +43,6 @@ if os.path.exists(DATA_FILE):
 else:
     df_kas = pd.DataFrame(index=bulan, columns=nama_siswa).fillna("")
 
-# Load or initialize pengeluaran data
 if os.path.exists(PENGELUARAN_FILE):
     df_pengeluaran = pd.read_excel(PENGELUARAN_FILE)
 else:
@@ -80,9 +79,9 @@ for siswa in nama_siswa:
     if previous_value == "TRUE":
         default_option = "Sudah Bayar"
         previous_nominal = "0"
-    elif previous_value.strip().isdigit():
+    elif str(previous_value).strip().isdigit():
         default_option = "Bayar Sebagian"
-        previous_nominal = previous_value
+        previous_nominal = str(previous_value)
     else:
         default_option = "Belum Bayar"
         previous_nominal = ""
@@ -97,97 +96,81 @@ for siswa in nama_siswa:
 
     with col_nominal:
         if status in ["Sudah Bayar", "Bayar Sebagian"]:
-            nominal = st.text_input(label="", key=key_nominal, value=previous_nominal)
-            if nominal.strip().isdigit() or nominal.replace('.', '', 1).isdigit():
-                df_kas.at[selected_bulan, siswa] = str(int(float(nominal.strip())))
-            else:
-                st.warning(f"Nominal tidak valid untuk: {siswa}")
+            nominal = st.text_input(label="", value=previous_nominal, key=key_nominal)
+        else:
+            nominal = ""
+
+    # Update langsung ke df_kas
+    if status == "Belum Bayar":
+        df_kas.at[selected_bulan, siswa] = ""
+    elif status == "Sudah Bayar":
+        df_kas.at[selected_bulan, siswa] = "TRUE"
+    else:  # Bayar Sebagian
+        if nominal.strip().isdigit() or nominal.replace('.', '', 1).isdigit():
+            df_kas.at[selected_bulan, siswa] = str(int(float(nominal.strip())))
         else:
             df_kas.at[selected_bulan, siswa] = ""
+
+# Auto save setelah input kas
+df_kas.to_excel(DATA_FILE)
+
+st.success("✅ Data kas siswa otomatis tersimpan.")
 
 # Input pengeluaran
 st.header("💸 Input Pengeluaran")
 st.markdown("Masukkan pengeluaran untuk bulan ini:")
 
-st.markdown("### ✏️ Edit atau Tambah Pengeluaran")
+# Formulir input pengeluaran
+with st.form("form_pengeluaran"):
+    col1, col2 = st.columns(2)
+    with col1:
+        keterangan = st.text_input("Keterangan")
+    with col2:
+        nominal_pengeluaran = st.number_input("Nominal", min_value=0, step=1000)
 
-# Filter pengeluaran bulan yang dipilih
-pengeluaran_bulan_ini = df_pengeluaran[df_pengeluaran["Bulan"] == selected_bulan]
+    submitted = st.form_submit_button("Simpan Pengeluaran")
 
-# Untuk menyimpan data sementara hasil edit
-edited_pengeluaran = []
-
-with st.form("edit_pengeluaran"):
-    for i, row in pengeluaran_bulan_ini.iterrows():
-        col1, col2 = st.columns([3, 2])
-        with col1:
-            new_ket = st.text_input(f"Keterangan {i}", value=row["Keterangan"], key=f"ket_{i}")
-        with col2:
-            new_nominal = st.number_input(f"Nominal {i}", value=row["Nominal"], key=f"nominal_{i}", step=1000, min_value=0)
-        edited_pengeluaran.append({"Bulan": selected_bulan, "Keterangan": new_ket, "Nominal": new_nominal})
-
-    st.markdown("**Tambah Pengeluaran Baru (Opsional)**")
-    col3, col4 = st.columns(2)
-    with col3:
-        new_ket = st.text_input("Keterangan Baru", key="new_ket")
-    with col4:
-        new_nominal = st.number_input("Nominal Baru", key="new_nominal", step=1000, min_value=0)
-
-    if new_ket and new_nominal > 0:
-        edited_pengeluaran.append({"Bulan": selected_bulan, "Keterangan": new_ket, "Nominal": new_nominal})
-
-    if st.form_submit_button("💾 Simpan Semua Pengeluaran"):
-        # Hapus data lama bulan ini, lalu simpan yang baru
-        df_pengeluaran = df_pengeluaran[df_pengeluaran["Bulan"] != selected_bulan]
-        df_pengeluaran = pd.concat([df_pengeluaran, pd.DataFrame(edited_pengeluaran)], ignore_index=True)
+    if submitted and keterangan and nominal_pengeluaran > 0:
+        new_row = {"Bulan": selected_bulan, "Keterangan": keterangan, "Nominal": int(nominal_pengeluaran)}
+        df_pengeluaran = pd.concat([df_pengeluaran, pd.DataFrame([new_row])], ignore_index=True)
         df_pengeluaran.to_excel(PENGELUARAN_FILE, index=False)
-        st.success("Pengeluaran bulan ini berhasil diperbarui!")
+        st.success("Pengeluaran berhasil disimpan!")
 
-# Tombol opsional untuk menambah tabel input pengeluaran tambahan
+# Tambah pengeluaran tambahan
 st.subheader("Tabel Pengeluaran Tambahan (Opsional)")
 add_table = st.checkbox("Tambahkan Pengeluaran Lainnya", value=False)
 
 if add_table:
     st.write("Masukkan pengeluaran tambahan di bawah ini:")
-    # Membuat tabel pengeluaran tambahan
-    num_rows = st.number_input("Berapa banyak baris yang ingin ditambahkan?", min_value=1, max_value=10, value=1, step=1)
-    
-    # List untuk menampung data input pengeluaran tambahan
+    num_rows = st.number_input("Berapa banyak baris ingin ditambahkan?", min_value=1, max_value=10, value=1, step=1)
+
     additional_data = []
 
-    # Loop untuk input beberapa pengeluaran
     for i in range(num_rows):
         col1, col2 = st.columns(2)
         with col1:
             keterangan = st.text_input(f"Keterangan Pengeluaran {i+1}")
         with col2:
             nominal = st.number_input(f"Nominal Pengeluaran {i+1}", min_value=0, step=1000)
-        
+
         if keterangan and nominal > 0:
             additional_data.append({"Bulan": selected_bulan, "Keterangan": keterangan, "Nominal": nominal})
-    
-    # Menampilkan tabel pengeluaran tambahan
+
     if additional_data:
         df_additional = pd.DataFrame(additional_data)
         st.dataframe(df_additional)
-        
-        # Tombol untuk menyimpan pengeluaran tambahan
+
         if st.button("Simpan Pengeluaran Tambahan"):
             df_pengeluaran = pd.concat([df_pengeluaran, df_additional], ignore_index=True)
             df_pengeluaran.to_excel(PENGELUARAN_FILE, index=False)
             st.success("Pengeluaran tambahan berhasil disimpan!")
 
-# Tombol simpan
-if st.button("💾 Simpan Kas Siswa"):
-    df_kas.to_excel(DATA_FILE)
-    st.success("Data kas siswa berhasil disimpan.")
-
-# Rekap
+# Rekap kas
 st.header("📊 Rekap Kas")
 df_display = df_kas.T
 st.dataframe(df_display, use_container_width=True, height=600)
 
-# Gambar
+# Fungsi konversi dataframe ke gambar
 def dataframe_to_image(df):
     df_vis = df.fillna("").astype(str)
     n_rows, n_cols = df_vis.shape
