@@ -233,7 +233,7 @@ def dataframe_to_image(df):
 img_buf = dataframe_to_image(df_display)
 
 # Menampilkan gambar pada Streamlit
-st.image(img_buf, caption="Rekap Kas Kelas (Gambar)", use_column_width=True)
+st.image(img_buf, caption="Rekap Kas Kelas (Gambar)", use_container_width=True)
 
 # Menambahkan tombol untuk download gambar
 st.download_button(
