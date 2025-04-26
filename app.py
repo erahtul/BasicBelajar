@@ -115,9 +115,12 @@ for siswa in nama_siswa:
         default_option = "Belum Bayar"
         previous_nominal = ""
 
-    # Periksa apakah key_status sudah ada di session_state, jika belum set dengan default_option
+    # Inisialisasi key status dan nominal di session_state jika belum ada
     if key_status not in st.session_state:
         st.session_state[key_status] = default_option  # Inisialisasi dengan nilai default
+
+    if key_nominal not in st.session_state:
+        st.session_state[key_nominal] = previous_nominal  # Inisialisasi nominal
 
     with col_status:
         status = st.selectbox(
@@ -211,14 +214,14 @@ if not df_pengeluaran_bulan_ini.empty:
             })
             .set_table_styles([{
                 'selector': 'thead th',
-                'props': [('background-color', '#dbeafe'), ('font-weight', 'bold'), ('text-align', 'center')]
-            }])
+                'props': [('background-color', '#dbeafe'), ('font-weight', 'bold'), ('text-align', 'center')]}
+            ])
             .hide(axis="index")
     )
 else:
     st.info("Belum ada pengeluaran tercatat untuk bulan ini.")
 
-# --- Rekap Kas ---
+# Rekap kas
 st.header("📊 Rekap Kas")
 df_display = df_kas.T
 st.dataframe(df_display, use_container_width=True, height=600)
@@ -262,7 +265,7 @@ def dataframe_to_image(df):
 img_buf = dataframe_to_image(df_display)
 
 # Menampilkan gambar pada Streamlit
-st.image(img_buf, caption="Rekap Kas Kelas (Gambar)", use_container_width=True)
+st.image(img_buf, caption="Rekap Kas Kelas (Gambar)", use_column_width=True)
 
 # Menambahkan tombol untuk download gambar
 st.download_button(
