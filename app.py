@@ -186,3 +186,43 @@ st.download_button(
     file_name="rekap_kas_kelas_vii.png",
     mime="image/png"
 )
+
+# --- DOWNLOAD & RESET SECTION ---
+
+st.markdown("---")
+st.header("📦 Download & Reset Data")
+
+# Download Laporan Kas
+st.subheader("📥 Download Laporan Kas")
+with open(DATA_FILE, "rb") as f:
+    st.download_button(
+        label="Download Laporan Kas (Excel)",
+        data=f,
+        file_name="laporan_kas_kelas_vii.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+# Download Laporan Pengeluaran
+st.subheader("📥 Download Laporan Pengeluaran")
+with open(PENGELUARAN_FILE, "rb") as f:
+    st.download_button(
+        label="Download Laporan Pengeluaran (Excel)",
+        data=f,
+        file_name="laporan_pengeluaran_kelas_vii.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+# Reset Data Kas
+st.subheader(f"♻️ Reset Data Kas Bulan {selected_bulan}")
+if st.button(f"Reset Data Kas Bulan {selected_bulan}"):
+    for siswa in nama_siswa:
+        df_kas.at[selected_bulan, siswa] = ""
+    df_kas.to_excel(DATA_FILE)
+    st.success(f"✅ Data kas bulan {selected_bulan} berhasil di-reset!")
+
+# Reset Data Pengeluaran
+st.subheader(f"♻️ Reset Data Pengeluaran Bulan {selected_bulan}")
+if st.button(f"Reset Data Pengeluaran Bulan {selected_bulan}"):
+    df_pengeluaran = df_pengeluaran[df_pengeluaran['Bulan'] != selected_bulan]
+    df_pengeluaran.to_excel(PENGELUARAN_FILE, index=False)
+    st.success(f"✅ Data pengeluaran bulan {selected_bulan} berhasil di-reset!")
