@@ -1,14 +1,12 @@
 import streamlit as st
 import pandas as pd
-from io import BytesIO
 import os
 import matplotlib.pyplot as plt
-import seaborn as sns
-from PIL import Image
+from io import BytesIO
 import io
 
 # Setup
-st.set_page_config(page_title="Kas Kelas VII", layout="wide")
+st.set_page_config(page_title="Kas Kelas VII", layout="centered")  # Ganti layout menjadi centered untuk tampilan mobile yang lebih baik
 
 # Welcome Header
 st.markdown("<h1 style='text-align: center;'>Welcome to My Application</h1>", unsafe_allow_html=True)
@@ -21,18 +19,16 @@ st.markdown("<h4 style='text-align: center; color: gray;'>Tahun Ajaran 2024/2025
 st.markdown("---")
 
 # Data setup
-nama_siswa = [
-    "Afiqah Naura R.", "Ahdani Nurrohmah", "Ahmad Haikal Zufar", "Ahmad Zaki Alghifari",
-    "Annisa Mutia Azizah", "Aqilah Athaya Yuvita", "Aqila Qonita Mumtaza", "Bima Wahianto Sitepu",
-    "Bryan Keama Huda", "Darrel Muhammad Ziqrillah", "Falya Azqya Nadheera", "Herjuno Caesar Ali",
-    "Iksan Fahmi", "Kayla Julia Rahma", "Ladysha Qanita Wijaya", "Lakeisha Safilla Budiyanto",
-    "Muhammad Athar Rafianza", "Muhammad Dimas Prasetyo", "Muhammad Kresna Akbar S.",
-    "Muhammad Wijaya K.", "Najmi Al Irsyaq Nurhadi", "Rachel Kireina Axelle", "Ragil Albar Fahrezi",
-    "Rizqi Heriansyah", "Ruby Aqilah A.", "Salsabila Putri Kurniawan", "Yuko Haadi Pratama"
-]
+nama_siswa = ["Afiqah Naura R.", "Ahdani Nurrohmah", "Ahmad Haikal Zufar", "Ahmad Zaki Alghifari", 
+    "Annisa Mutia Azizah", "Aqilah Athaya Yuvita", "Aqila Qonita Mumtaza", "Bima Wahianto Sitepu", 
+    "Bryan Keama Huda", "Darrel Muhammad Ziqrillah", "Falya Azqya Nadheera", "Herjuno Caesar Ali", 
+    "Iksan Fahmi", "Kayla Julia Rahma", "Ladysha Qanita Wijaya", "Lakeisha Safilla Budiyanto", 
+    "Muhammad Athar Rafianza", "Muhammad Dimas Prasetyo", "Muhammad Kresna Akbar S.", 
+    "Muhammad Wijaya K.", "Najmi Al Irsyaq Nurhadi", "Rachel Kireina Axelle", "Ragil Albar Fahrezi", 
+    "Rizqi Heriansyah", "Ruby Aqilah A.", "Salsabila Putri Kurniawan", "Yuko Haadi Pratama"]
 
-bulan = ["Juli", "Agustus", "September", "Oktober", "November", "Desember",
-         "Januari", "Febuari", "Maret", "April", "Mei", "Juni"]
+bulan = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Febuari", 
+         "Maret", "April", "Mei", "Juni"]
 
 DATA_FILE = "kas_data.xlsx"
 PENGELUARAN_FILE = "pengeluaran_data.xlsx"
@@ -137,59 +133,7 @@ for siswa in nama_siswa:
 df_kas.to_excel(DATA_FILE)
 st.success("✅ Data kas siswa otomatis tersimpan.")
 
-# Input pengeluaran
-st.header("💸 Input Pengeluaran")
-st.markdown("Masukkan pengeluaran untuk bulan ini (nominal kelipatan Rp1.000):")
-
-# Formulir input pengeluaran
-with st.form("form_pengeluaran"):
-    col1, col2 = st.columns(2)
-    with col1:
-        keterangan = st.text_input("Keterangan")
-    with col2:
-        nominal_pengeluaran = st.number_input(
-            "Nominal (Rp)", min_value=0, step=1000, format="%d"
-        )
-
-    submitted = st.form_submit_button("Simpan Pengeluaran")
-
-    if submitted:
-        if keterangan and nominal_pengeluaran > 0:
-            if nominal_pengeluaran % 1000 == 0:
-                new_row = {"Bulan": selected_bulan, "Keterangan": keterangan, "Nominal": int(nominal_pengeluaran)}
-                df_pengeluaran = pd.concat([df_pengeluaran, pd.DataFrame([new_row])], ignore_index=True)
-                df_pengeluaran.to_excel(PENGELUARAN_FILE, index=False)
-                st.success("Pengeluaran berhasil disimpan!")
-            else:
-                st.error("Nominal harus kelipatan Rp1.000.")
-
-# Tampilkan tabel semua pengeluaran bulan ini
-st.subheader(f"📄 Daftar Pengeluaran Bulan {selected_bulan}")
-df_pengeluaran_bulan_ini = df_pengeluaran[df_pengeluaran['Bulan'] == selected_bulan]
-
-if not df_pengeluaran_bulan_ini.empty:
-    # Format nominal jadi format uang
-    df_pengeluaran_bulan_ini_display = df_pengeluaran_bulan_ini.copy()
-    df_pengeluaran_bulan_ini_display['Nominal'] = df_pengeluaran_bulan_ini_display['Nominal'].apply(lambda x: f"Rp {x:,.0f}".replace(',', '.'))
-
-    # Tampilkan tabel lebih rapih
-    st.dataframe(
-        df_pengeluaran_bulan_ini_display.style
-            .set_properties(**{
-                'text-align': 'center',
-                'background-color': '#f0f8ff',  # Soft light blue
-                'font-weight': 'bold'
-            })
-            .set_table_styles([{
-                'selector': 'thead th',
-                'props': [('background-color', '#dbeafe'), ('font-weight', 'bold'), ('text-align', 'center')]
-            }])
-            .hide(axis="index")
-    )
-else:
-    st.info("Belum ada pengeluaran tercatat untuk bulan ini.")
-
-# Rekap kas
+# --- Rekap Kas ---
 st.header("📊 Rekap Kas")
 df_display = df_kas.T
 st.dataframe(df_display, use_container_width=True, height=600)
