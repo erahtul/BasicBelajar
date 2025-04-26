@@ -5,6 +5,32 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 import io
 
+# Konfigurasi login admin
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "admin123"
+
+# Fungsi untuk login
+def login():
+    st.session_state.logged_in = False
+    st.session_state.username = ""
+    
+    st.title("Login Admin")
+    
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    
+    if st.button("Login"):
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.success("Login berhasil!")
+        else:
+            st.error("Username atau password salah!")
+
+# Mengecek status login
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+    
 # Setup
 st.set_page_config(page_title="Kas Kelas VII", layout="centered")  # Ganti layout menjadi centered untuk tampilan mobile yang lebih baik
 
