@@ -18,6 +18,10 @@ st.markdown("<h3 style='text-align: center;'>Kas Ortu/Wali Kelas VII</h3>", unsa
 st.markdown("<h4 style='text-align: center; color: gray;'>Tahun Ajaran 2024/2025</h4>", unsafe_allow_html=True)
 st.markdown("---")
 
+import streamlit as st
+import pandas as pd
+import os
+
 # Data setup
 nama_siswa = ["Afiqah Naura R.", "Ahdani Nurrohmah", "Ahmad Haikal Zufar", "Ahmad Zaki Alghifari", 
     "Annisa Mutia Azizah", "Aqilah Athaya Yuvita", "Aqila Qonita Mumtaza", "Bima Wahianto Sitepu", 
@@ -50,6 +54,19 @@ else:
     df_pengeluaran = pd.DataFrame(columns=["Bulan", "Keterangan", "Nominal"])
 
 # Layout input
+st.set_page_config(page_title="Kas Kelas VII", layout="centered")  # Ganti layout menjadi centered untuk tampilan mobile yang lebih baik
+
+# Welcome Header
+st.markdown("<h1 style='text-align: center;'>Welcome to My Application</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 14px; color: gray;'>Created by Bang Imat</p>", unsafe_allow_html=True)
+
+# Judul
+st.markdown("<h2 style='text-align: center;'>SMPI Al HAYYAN</h2>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center;'>Kas Ortu/Wali Kelas VII</h3>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align: center; color: gray;'>Tahun Ajaran 2024/2025</h4>", unsafe_allow_html=True)
+st.markdown("---")
+
+# Input kas siswa
 st.markdown("### 🔄 Input Data Kas")
 selected_bulan = st.selectbox("Pilih Bulan", bulan, index=0)
 st.markdown(f"#### 🗓️ Input untuk Bulan **{selected_bulan}**")
@@ -75,6 +92,12 @@ for siswa in nama_siswa:
 
     key_status = f"{selected_bulan}_{siswa}_status"
     key_nominal = f"{selected_bulan}_{siswa}_nominal"
+
+    # Pastikan key_status dan key_nominal ada di session_state
+    if key_status not in st.session_state:
+        st.session_state[key_status] = "Belum Bayar"  # Inisialisasi dengan status default
+    if key_nominal not in st.session_state:
+        st.session_state[key_nominal] = ""  # Inisialisasi dengan nominal default
 
     previous_value = df_kas.at[selected_bulan, siswa]
 
@@ -195,7 +218,7 @@ if not df_pengeluaran_bulan_ini.empty:
 else:
     st.info("Belum ada pengeluaran tercatat untuk bulan ini.")
 
-# Rekap kas
+# --- Rekap Kas --- 
 st.header("📊 Rekap Kas")
 df_display = df_kas.T
 st.dataframe(df_display, use_container_width=True, height=600)
