@@ -37,6 +37,11 @@ bulan = ["Juli", "Agustus", "September", "Oktober", "November", "Desember",
 DATA_FILE = "kas_data.xlsx"
 PENGELUARAN_FILE = "pengeluaran_data.xlsx"
 
+# Nominal pilihan
+nominal_values = list(range(5000, 50001, 5000))
+nominal_display = [f"Rp {x:,}".replace(",", ".") for x in nominal_values]
+nominal_mapping = dict(zip(nominal_display, nominal_values))
+
 # Load or initialize data
 if os.path.exists(DATA_FILE):
     df_kas = pd.read_excel(DATA_FILE, index_col=0)
@@ -51,9 +56,9 @@ else:
 # Layout input
 st.markdown("### 🔄 Input Data Kas")
 selected_bulan = st.selectbox("Pilih Bulan", bulan, index=0)
-st.markdown(f"#### 📅 Input untuk Bulan **{selected_bulan}**")
+st.markdown(f"#### 🗓️ Input untuk Bulan **{selected_bulan}**")
 
-st.markdown("#### 🧾 Formulir Input Kas")
+st.markdown("#### 🧲 Formulir Input Kas")
 st.write("Silakan isi status kas masing-masing siswa di bawah ini:")
 
 # Header Tabel
@@ -96,37 +101,41 @@ for siswa in nama_siswa:
 
     with col_nominal:
         if status in ["Sudah Bayar", "Bayar Sebagian"]:
-            nominal = st.text_input(label="", value=previous_nominal, key=key_nominal)
+            default_nominal = f"Rp {int(previous_nominal):,}".replace(",", ".") if previous_nominal.isdigit() else nominal_display[0]
+            nominal = st.selectbox(
+                label="",
+                options=[""] + nominal_display,
+                index=(nominal_display.index(default_nominal) + 1) if default_nominal in nominal_display else 0,
+                key=key_nominal
+            )
         else:
             nominal = ""
 
-    # Update langsung ke df_kas
     if status == "Belum Bayar":
         df_kas.at[selected_bulan, siswa] = ""
     elif status == "Sudah Bayar":
         df_kas.at[selected_bulan, siswa] = "TRUE"
-    else:  # Bayar Sebagian
-        if nominal.strip().isdigit() or nominal.replace('.', '', 1).isdigit():
-            df_kas.at[selected_bulan, siswa] = str(int(float(nominal.strip())))
+    else:
+        if nominal and nominal in nominal_mapping:
+            df_kas.at[selected_bulan, siswa] = str(nominal_mapping[nominal])
         else:
             df_kas.at[selected_bulan, siswa] = ""
 
 # Auto save setelah input kas
 df_kas.to_excel(DATA_FILE)
-
 st.success("✅ Data kas siswa otomatis tersimpan.")
 
 # Input pengeluaran
 st.header("💸 Input Pengeluaran")
 st.markdown("Masukkan pengeluaran untuk bulan ini:")
 
-# Formulir input pengeluaran
 with st.form("form_pengeluaran"):
     col1, col2 = st.columns(2)
     with col1:
         keterangan = st.text_input("Keterangan")
     with col2:
-        nominal_pengeluaran = st.number_input("Nominal", min_value=0, step=1000)
+        nominal_pengeluaran_display = st.selectbox("Nominal", nominal_display)
+        nominal_pengeluaran = nominal_mapping[nominal_pengeluaran_display] if nominal_pengeluaran_display else 0
 
     submitted = st.form_submit_button("Simpan Pengeluaran")
 
@@ -140,67 +149,6 @@ with st.form("form_pengeluaran"):
 st.header("📊 Rekap Kas")
 df_display = df_kas.T
 st.dataframe(df_display, use_container_width=True, height=600)
-
-# Fungsi konversi dataframe ke gambar
-def dataframe_to_image(df):
-    df_vis = df.fillna("").astype(str)
-    n_rows, n_cols = df_vis.shape
-    fig, ax = plt.subplots(figsize=(1.5 + n_cols, 0.4 + n_rows * 0.4))
-
-    def cell_color(val):
-        if val.upper() == "TRUE":
-            return "#d4edda"
-        elif val.strip().isdigit() or val.replace('.', '', 1).isdigit():
-            return "#cce5ff"
-        else:
-            return "#ffffff"
-
-    cell_colors = [[cell_color(val) for val in row] for row in df_vis.values]
-
-    table = ax.table(cellText=df_vis.values,
-                     rowLabels=df_vis.index,
-                     colLabels=df_vis.columns,
-                     cellColours=cell_colors,
-                     loc='center',
-                     cellLoc='center')
-
-    table.auto_set_font_size(False)
-    table.set_fontsize(8)
-    table.scale(1.2, 1.2)
-    ax.axis('off')
-    plt.title("Rekap Kas Kelas VII SMPI Al-HAYYAN", fontsize=14, weight='bold', pad=20)
-
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight', dpi=200)
-    plt.close()
-    buf.seek(0)
-    return buf
-
-img_buf = dataframe_to_image(df_display)
-st.image(img_buf, caption="Rekap Kas Kelas (Gambar)")
-
-st.download_button(
-    label="🖼️ Download Rekap Kas sebagai Gambar (PNG)",
-    data=img_buf,
-    file_name="rekap_kas_kelas_vii.png",
-    mime="image/png"
-)
-
-# Download Excel
-def to_excel(df):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=True, sheet_name='Kas Siswa')
-    return output.getvalue()
-
-excel_data = to_excel(df_display)
-
-st.download_button(
-    label="📥 Download sebagai Excel",
-    data=excel_data,
-    file_name='kas_kelas_vii_smpi_alhayyan.xlsx',
-    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-)
 
 # Rekap Total
 st.header("💰 Total Rekapitulasi")
