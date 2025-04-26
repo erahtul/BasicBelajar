@@ -115,16 +115,21 @@ for siswa in nama_siswa:
         default_option = "Belum Bayar"
         previous_nominal = ""
 
+    # Cek session state untuk mempertahankan input
+    if key_status not in st.session_state:
+        st.session_state[key_status] = default_option
+    if key_nominal not in st.session_state:
+        st.session_state[key_nominal] = previous_nominal
+
     with col_status:
         status = st.selectbox(
             label="",
             options=["Belum Bayar", "Sudah Bayar", "Bayar Sebagian"],
-            index=["Belum Bayar", "Sudah Bayar", "Bayar Sebagian"].index(default_option),
+            index=["Belum Bayar", "Sudah Bayar", "Bayar Sebagian"].index(st.session_state[key_status]),
             key=key_status
         )
 
     with col_nominal:
-        # Tambahkan isi blok 'with' secara benar
         if status in ["Sudah Bayar", "Bayar Sebagian"]:
             nominal_display_partial = [f"Rp {x:,}".replace(",", ".") for x in range(5000, 20001, 5000)]
             if previous_nominal.isdigit():
@@ -145,6 +150,10 @@ for siswa in nama_siswa:
             )
         else:
             nominal = ""
+
+    # Update session state dengan nilai yang dipilih
+    st.session_state[key_status] = status
+    st.session_state[key_nominal] = nominal
 
     # Simpan data status dan nominal ke DataFrame
     if status == "Belum Bayar":
