@@ -115,11 +115,9 @@ for siswa in nama_siswa:
         default_option = "Belum Bayar"
         previous_nominal = ""
 
-    # Cek session state untuk mempertahankan input
+    # Periksa apakah key_status sudah ada di session_state, jika belum set dengan default_option
     if key_status not in st.session_state:
-        st.session_state[key_status] = default_option
-    if key_nominal not in st.session_state:
-        st.session_state[key_nominal] = previous_nominal
+        st.session_state[key_status] = default_option  # Inisialisasi dengan nilai default
 
     with col_status:
         status = st.selectbox(
@@ -151,10 +149,6 @@ for siswa in nama_siswa:
         else:
             nominal = ""
 
-    # Update session state dengan nilai yang dipilih
-    st.session_state[key_status] = status
-    st.session_state[key_nominal] = nominal
-
     # Simpan data status dan nominal ke DataFrame
     if status == "Belum Bayar":
         df_kas.at[selected_bulan, siswa] = ""
@@ -163,6 +157,10 @@ for siswa in nama_siswa:
             df_kas.at[selected_bulan, siswa] = str(nominal_mapping[nominal])
         else:
             df_kas.at[selected_bulan, siswa] = ""
+
+    # Update session_state untuk status dan nominal
+    st.session_state[key_status] = status  # Simpan status yang dipilih
+    st.session_state[key_nominal] = nominal  # Simpan nominal yang dipilih
 
 # Setelah loop selesai, auto save
 df_kas.to_excel(DATA_FILE)
