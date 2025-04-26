@@ -10,13 +10,9 @@ import io
 # Setup
 st.set_page_config(page_title="Kas Kelas VII", layout="wide")
 
-# Selamat Datang
-st.markdown("""
-<div style="text-align: center; padding: 20px;">
-    <h1 style="color:#4CAF50;">Welcome My Application</h1>
-    <p style="font-size:14px; color:gray;">Created by <b>Bang Imat</b></p>
-</div>
-""", unsafe_allow_html=True)
+# Welcome Header
+st.markdown("<h1 style='text-align: center;'>Welcome to My Application</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 14px; color: gray;'>Created by Bang Imat</p>", unsafe_allow_html=True)
 
 # Judul
 st.markdown("<h2 style='text-align: center;'>SMPI Al HAYYAN</h2>", unsafe_allow_html=True)
@@ -80,25 +76,18 @@ for siswa in nama_siswa:
     key_status = f"{selected_bulan}_{siswa}_status"
     key_nominal = f"{selected_bulan}_{siswa}_nominal"
 
-    # Mengambil nilai sebelumnya dari DataFrame
     previous_value = df_kas.at[selected_bulan, siswa]
-
-    # Menentukan default option dan previous nominal berdasarkan previous_value
     if previous_value == "TRUE":
         default_option = "Sudah Bayar"
         previous_nominal = "0"
-    elif isinstance(previous_value, (int, float)):  # Cek jika previous_value adalah angka
+    elif previous_value.strip().isdigit():
         default_option = "Bayar Sebagian"
-        previous_nominal = str(previous_value)
-    elif isinstance(previous_value, str) and previous_value.strip().isdigit():
-        default_option = "Bayar Sebagian"
-        previous_nominal = previous_value.strip()
+        previous_nominal = previous_value
     else:
         default_option = "Belum Bayar"
         previous_nominal = ""
 
     with col_status:
-        # Pilih status berdasarkan default_option
         status = st.selectbox(
             label="",
             options=["Belum Bayar", "Sudah Bayar", "Bayar Sebagian"],
@@ -107,40 +96,52 @@ for siswa in nama_siswa:
         )
 
     with col_nominal:
-        # Jika status adalah 'Sudah Bayar' atau 'Bayar Sebagian', input nominal
         if status in ["Sudah Bayar", "Bayar Sebagian"]:
             nominal = st.text_input(label="", key=key_nominal, value=previous_nominal)
-
-            # Cek apakah nominal valid (angka atau format desimal)
-            if nominal.strip().replace('.', '', 1).isdigit() and nominal.count('.') <= 1:
-                # Jika valid, simpan sebagai angka di DataFrame
+            if nominal.strip().isdigit() or nominal.replace('.', '', 1).isdigit():
                 df_kas.at[selected_bulan, siswa] = str(int(float(nominal.strip())))
             else:
                 st.warning(f"Nominal tidak valid untuk: {siswa}")
         else:
-            # Jika status 'Belum Bayar', kosongkan nilai nominal
             df_kas.at[selected_bulan, siswa] = ""
 
 # Input pengeluaran
 st.header("💸 Input Pengeluaran")
 st.markdown("Masukkan pengeluaran untuk bulan ini:")
 
-# Formulir untuk input pengeluaran utama
-with st.form("form_pengeluaran"):
-    col1, col2 = st.columns(2)
-    with col1:
-        keterangan = st.text_input("Keterangan")
-    with col2:
-        nominal_pengeluaran = st.number_input("Nominal", min_value=0, step=1000)
-    
-    submitted = st.form_submit_button("Simpan Pengeluaran")
-    
-    # Menyimpan pengeluaran jika sudah diinput
-    if submitted and keterangan and nominal_pengeluaran > 0:
-        new_row = {"Bulan": selected_bulan, "Keterangan": keterangan, "Nominal": int(nominal_pengeluaran)}
-        df_pengeluaran = pd.concat([df_pengeluaran, pd.DataFrame([new_row])], ignore_index=True)
+st.markdown("### ✏️ Edit atau Tambah Pengeluaran")
+
+# Filter pengeluaran bulan yang dipilih
+pengeluaran_bulan_ini = df_pengeluaran[df_pengeluaran["Bulan"] == selected_bulan]
+
+# Untuk menyimpan data sementara hasil edit
+edited_pengeluaran = []
+
+with st.form("edit_pengeluaran"):
+    for i, row in pengeluaran_bulan_ini.iterrows():
+        col1, col2 = st.columns([3, 2])
+        with col1:
+            new_ket = st.text_input(f"Keterangan {i}", value=row["Keterangan"], key=f"ket_{i}")
+        with col2:
+            new_nominal = st.number_input(f"Nominal {i}", value=row["Nominal"], key=f"nominal_{i}", step=1000, min_value=0)
+        edited_pengeluaran.append({"Bulan": selected_bulan, "Keterangan": new_ket, "Nominal": new_nominal})
+
+    st.markdown("**Tambah Pengeluaran Baru (Opsional)**")
+    col3, col4 = st.columns(2)
+    with col3:
+        new_ket = st.text_input("Keterangan Baru", key="new_ket")
+    with col4:
+        new_nominal = st.number_input("Nominal Baru", key="new_nominal", step=1000, min_value=0)
+
+    if new_ket and new_nominal > 0:
+        edited_pengeluaran.append({"Bulan": selected_bulan, "Keterangan": new_ket, "Nominal": new_nominal})
+
+    if st.form_submit_button("💾 Simpan Semua Pengeluaran"):
+        # Hapus data lama bulan ini, lalu simpan yang baru
+        df_pengeluaran = df_pengeluaran[df_pengeluaran["Bulan"] != selected_bulan]
+        df_pengeluaran = pd.concat([df_pengeluaran, pd.DataFrame(edited_pengeluaran)], ignore_index=True)
         df_pengeluaran.to_excel(PENGELUARAN_FILE, index=False)
-        st.success("Pengeluaran berhasil disimpan!")
+        st.success("Pengeluaran bulan ini berhasil diperbarui!")
 
 # Tombol opsional untuk menambah tabel input pengeluaran tambahan
 st.subheader("Tabel Pengeluaran Tambahan (Opsional)")
@@ -213,7 +214,7 @@ def dataframe_to_image(df):
     table.set_fontsize(8)
     table.scale(1.2, 1.2)
     ax.axis('off')
-    plt.title("Rekap Kas Kelas VII SMPI Al-HAYYAN", fontsize=24, weight='bold', pad=20)
+    plt.title("Rekap Kas Kelas VII SMPI Al-HAYYAN", fontsize=14, weight='bold', pad=20)
 
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', dpi=200)
