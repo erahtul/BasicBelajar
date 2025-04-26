@@ -136,35 +136,6 @@ with st.form("form_pengeluaran"):
         df_pengeluaran.to_excel(PENGELUARAN_FILE, index=False)
         st.success("Pengeluaran berhasil disimpan!")
 
-# Tambah pengeluaran tambahan
-st.subheader("Tabel Pengeluaran Tambahan (Opsional)")
-add_table = st.checkbox("Tambahkan Pengeluaran Lainnya", value=False)
-
-if add_table:
-    st.write("Masukkan pengeluaran tambahan di bawah ini:")
-    num_rows = st.number_input("Berapa banyak baris ingin ditambahkan?", min_value=1, max_value=10, value=1, step=1)
-
-    additional_data = []
-
-    for i in range(num_rows):
-        col1, col2 = st.columns(2)
-        with col1:
-            keterangan = st.text_input(f"Keterangan Pengeluaran {i+1}")
-        with col2:
-            nominal = st.number_input(f"Nominal Pengeluaran {i+1}", min_value=0, step=1000)
-
-        if keterangan and nominal > 0:
-            additional_data.append({"Bulan": selected_bulan, "Keterangan": keterangan, "Nominal": nominal})
-
-    if additional_data:
-        df_additional = pd.DataFrame(additional_data)
-        st.dataframe(df_additional)
-
-        if st.button("Simpan Pengeluaran Tambahan"):
-            df_pengeluaran = pd.concat([df_pengeluaran, df_additional], ignore_index=True)
-            df_pengeluaran.to_excel(PENGELUARAN_FILE, index=False)
-            st.success("Pengeluaran tambahan berhasil disimpan!")
-
 # Rekap kas
 st.header("📊 Rekap Kas")
 df_display = df_kas.T
